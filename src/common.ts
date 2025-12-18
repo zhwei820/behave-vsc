@@ -282,6 +282,7 @@ export const countTestItems = (testData: TestData, items: vscode.TestItem[]): Te
 export function cleanBehaveText(text: string) {
   // Remove all ANSI escape sequences (colors, formatting, cursor movement, etc.)
   // Pattern explanation: \x1b matches ESC character, \[ matches [, [0-9;]* matches control codes, [a-zA-Z] matches command letter
+  // eslint-disable-next-line no-control-regex
   return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
 }
 
