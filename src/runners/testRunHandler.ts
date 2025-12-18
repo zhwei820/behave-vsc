@@ -259,9 +259,14 @@ async function runFeaturesTogether(wr: WkspRun) {
   if (runTogetherFeatures.length > 0) {
     const allChildScenarios: QueueItem[] = [];
     runTogetherFeatures.forEach(feature => allChildScenarios.push(...getChildScenariosForFeature(wr, feature)));
-    allChildScenarios.forEach(x => wr.run.started(x.test));
-
-    await runOrDebugFeatures(wr, false, allChildScenarios);
+    
+    // 按 scenario 逐个执行并输出结果
+    for (const scenario of allChildScenarios) {
+      if (wr.run.token.isCancellationRequested)
+        break;
+      wr.run.started(scenario.test);
+      await runOrDebugFeatureWithSelectedScenarios(wr, false, [scenario]);
+    }
   }
 }
 
@@ -292,9 +297,13 @@ async function runFeaturesParallel(wr: WkspRun) {
       featuresRun.push(runEntireFeature.id);
 
       const childScenarios: QueueItem[] = getChildScenariosForParentFeature(wr, wkspQueueItem);
-      childScenarios.forEach(x => wr.run.started(x.test));
-      // 禁用整个 feature 文件的并行执行，改为顺序执行
-      await runOrDebugFeatures(wr, false, childScenarios);
+      // 按 scenario 逐个执行并输出结果
+      for (const scenario of childScenarios) {
+        if (wr.run.token.isCancellationRequested)
+          break;
+        wr.run.started(scenario.test);
+        await runOrDebugFeatureWithSelectedScenarios(wr, false, [scenario]);
+      }
       continue;
     }
 
