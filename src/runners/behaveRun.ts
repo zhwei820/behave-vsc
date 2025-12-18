@@ -17,7 +17,9 @@ export async function runBehaveInstance(wr: WkspRun, parallelMode: boolean,
     const local_args = [...args];
     local_args.unshift("-m", "behave");
     diagLog(`${wr.pythonExec} ${local_args.join(" ")}`, wkspUri);
-    const env = { ...process.env, ...wr.wkspSettings.envVarOverrides };
+    // Set PYTHONUNBUFFERED=1 to ensure all print() output is immediately flushed to stdout
+    // Without this, Python buffers output when stdout is not a TTY (like when piped to Node.js)
+    const env = { ...process.env, ...wr.wkspSettings.envVarOverrides, PYTHONUNBUFFERED: '1' };
     const options: SpawnOptions = { cwd: wkspUri.fsPath, env: env };
     cp = spawn(wr.pythonExec, local_args, options);
 
@@ -25,6 +27,10 @@ export async function runBehaveInstance(wr: WkspRun, parallelMode: boolean,
       throw `unable to launch python or behave, command: ${wr.pythonExec} ${local_args.join(" ")}\n` +
       `working directory:${wkspUri.fsPath}\nenv var overrides: ${JSON.stringify(wr.wkspSettings.envVarOverrides)}`;
     }
+
+    // Set encoding to utf8 to properly handle output
+    if (cp.stdout) cp.stdout.setEncoding('utf8');
+    if (cp.stderr) cp.stderr.setEncoding('utf8');
 
     // if parallel mode, use a buffer so logs gets written out in a human-readable order
     const asyncBuff: string[] = [];
@@ -38,8 +44,8 @@ export async function runBehaveInstance(wr: WkspRun, parallelMode: boolean,
         config.logger.logInfoNoLF(str, wkspUri);
     }
 
-    cp.stderr?.on('data', chunk => log(chunk.toString()));
-    cp.stdout?.on('data', chunk => log(chunk.toString()));
+    cp.stderr?.on('data', (chunk: string) => log(chunk.toString()));
+    cp.stdout?.on('data', (chunk: string) => log(chunk.toString()));
 
     if (!parallelMode)
       config.logger.logInfo(`\n${friendlyCmd}\n`, wkspUri);
@@ -61,5 +67,3 @@ export async function runBehaveInstance(wr: WkspRun, parallelMode: boolean,
   }
 
 }
-
-

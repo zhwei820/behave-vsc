@@ -280,7 +280,9 @@ export const countTestItems = (testData: TestData, items: vscode.TestItem[]): Te
 
 
 export function cleanBehaveText(text: string) {
-  return text.replaceAll("\x1b", "").replaceAll("[33m", "").replaceAll("[0m", "");
+  // Remove all ANSI escape sequences (colors, formatting, cursor movement, etc.)
+  // Pattern explanation: \x1b matches ESC character, \[ matches [, [0-9;]* matches control codes, [a-zA-Z] matches command letter
+  return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
 }
 
 

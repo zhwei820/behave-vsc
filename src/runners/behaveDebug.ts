@@ -16,7 +16,9 @@ export async function debugBehaveInstance(wr: WkspRun, args: string[], friendlyC
     args.push("--no-summary", "--outfile",
       vscode.Uri.joinPath(config.extensionTempFilesUri, `${(wr.run.name ?? "")}-${wr.wkspSettings.name}-debug.log`).fsPath);
 
-    const env = { ...process.env, ...wr.wkspSettings.envVarOverrides };
+    // Set PYTHONUNBUFFERED=1 to ensure all print() output is immediately flushed to stdout
+    // Without this, Python buffers output when stdout is not a TTY (like when piped to Node.js)
+    const env = { ...process.env, ...wr.wkspSettings.envVarOverrides, PYTHONUNBUFFERED: '1' };
 
     const debugLaunchConfig = {
       name: `behave-vsc-debug`,
