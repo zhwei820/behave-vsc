@@ -1,6 +1,4 @@
 import { ChildProcess, spawn, SpawnOptions } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
 import { config } from "../configuration";
 import { cleanBehaveText } from '../common';
 import { diagLog } from '../logger';
@@ -31,88 +29,25 @@ export async function runBehaveInstance(wr: WkspRun, parallelMode: boolean,
       `working directory:${wkspUri.fsPath}\nenv var overrides: ${JSON.stringify(wr.wkspSettings.envVarOverrides)}`;
     }
 
-    // Create output file for debugging - write all stdout/stderr to aa.json
-    const outputFilePath = path.join(wkspUri.fsPath, 'aa.json');
-    
-    // Delete old file if it exists
-    if (fs.existsSync(outputFilePath)) {
-      fs.unlinkSync(outputFilePath);
-      config.logger.logInfo(`\nCleared old output file: ${outputFilePath}`, wkspUri);
-    }
-    
-    const outputStream = fs.createWriteStream(outputFilePath, { flags: 'w', encoding: 'utf8' });
-    
-    const outputData: { timestamp: string, source: string, data: string }[] = [];
-    
-    // Write command info at the start
-    outputStream.write('{\n');
-    outputStream.write('  "command_info": {\n');
-    outputStream.write(`    "timestamp": "${new Date().toISOString()}",\n`);
-    outputStream.write(`    "python_exec": ${JSON.stringify(wr.pythonExec)},\n`);
-    outputStream.write(`    "args": ${JSON.stringify(local_args, null, 4)},\n`);
-    outputStream.write(`    "options": ${JSON.stringify(options, null, 4)}\n`);
-    outputStream.write('  },\n');
-    outputStream.write('  "output": [\n');
-    config.logger.logInfo(`Writing all output to: ${outputFilePath}\n`, wkspUri);
-
     // Set encoding to utf8 to properly handle output
     if (cp.stdout) cp.stdout.setEncoding('utf8');
     if (cp.stderr) cp.stderr.setEncoding('utf8');
 
-    let isFirstEntry = true;
-    
-    // Log all output to file AND output window
-    const log = (source: string, str: string) => {
+    // Log all output directly to output window
+    const log = (str: string) => {
       if (!str) return;
-      
-      const entry = {
-        timestamp: new Date().toISOString(),
-        source: source,
-        data: str
-      };
-      
-      outputData.push(entry);
-      
-      // Write to file
-      if (!isFirstEntry) {
-        outputStream.write(',\n');
-      }
-      isFirstEntry = false;
-      outputStream.write(JSON.stringify(entry, null, 2));
-      
-      // Also write to output window
       const cleaned = cleanBehaveText(str);
       config.logger.logInfoNoLF(cleaned, wkspUri);
     }
 
     // Use data event - simplest and most reliable approach
-    cp.stderr?.on('data', (chunk: string) => log('stderr', chunk));
-    cp.stdout?.on('data', (chunk: string) => log('stdout', chunk));
+    cp.stderr?.on('data', (chunk: string) => log(chunk));
+    cp.stdout?.on('data', (chunk: string) => log(chunk));
 
     config.logger.logInfo(`\n${friendlyCmd}\n`, wkspUri);
 
     await new Promise((resolve) => {
       cp.on('close', () => {
-        // Close the output array and file
-        outputStream.write('\n  ],\n');
-        
-        const totalEntries = outputData.length;
-        const stdoutEntries = outputData.filter(e => e.source === 'stdout').length;
-        const stderrEntries = outputData.filter(e => e.source === 'stderr').length;
-        
-        // Write summary
-        outputStream.write('  "summary": {\n');
-        outputStream.write(`    "total_entries": ${totalEntries},\n`);
-        outputStream.write(`    "stdout_entries": ${stdoutEntries},\n`);
-        outputStream.write(`    "stderr_entries": ${stderrEntries},\n`);
-        outputStream.write(`    "completed_at": "${new Date().toISOString()}"\n`);
-        outputStream.write('  }\n');
-        outputStream.write('}\n');
-        outputStream.end();
-        
-        config.logger.logInfo(`\n\nOutput file written: ${outputFilePath}`, wkspUri);
-        config.logger.logInfo(`Total entries: ${totalEntries} (stdout: ${stdoutEntries}, stderr: ${stderrEntries})`, wkspUri);
-        
         resolve("");
       });
     });
