@@ -10,12 +10,13 @@ import { WkspRun } from "./testRunHandler";
 // hard-code any settings we MUST have (i.e. override user behave.ini file only where absolutely necessary)
 const OVERRIDE_ARGS = [
   "--show-skipped", // show-skipped is required for skipped tests to produce junit output
-  "--no-capture", // allow print() statements in steps to be displayed in output
+  "--no-capture",   // allow print() statements in steps to be displayed in output
   "--no-capture-stderr", // allow stderr output to be displayed
-  "--no-logcapture", // disable logging capture
-  // "--junit",
-  // "--junit-directory"
+  "--no-logcapture" // disable logging capture
 ];
+
+// For testing output only - not using junit
+const USE_JUNIT = false;
 
 export async function runOrDebugAllFeaturesInOneInstance(
   wr: WkspRun
@@ -25,12 +26,13 @@ export async function runOrDebugAllFeaturesInOneInstance(
   const friendlyEnvVars = getFriendlyEnvVars(wr.wkspSettings);
   const { ps1, ps2 } = getPSCmdModifyIfWindows();
 
-  const friendlyArgs = [...OVERRIDE_ARGS, `"${wr.junitRunDirUri.fsPath}"`];
+  const friendlyArgs = [...OVERRIDE_ARGS];
   const args = friendlyArgs.map((x) => x.replaceAll('"', ""));
 
   // Debug: Log the exact arguments being used
   console.log("[Behave VSC DEBUG] Running with args:", args);
   console.log("[Behave VSC DEBUG] OVERRIDE_ARGS:", OVERRIDE_ARGS);
+  console.log("[Behave VSC DEBUG] Working directory:", wr.wkspSettings.uri.fsPath);
 
   const friendlyCmd =
     `${ps1}cd "${wr.wkspSettings.uri.fsPath}"\n` +
@@ -69,8 +71,7 @@ export async function runOrDebugFeatures(
     const friendlyArgs = [
       "-i",
       `"${pipedPathPatterns}"`,
-      ...OVERRIDE_ARGS,
-      `"${wr.junitRunDirUri.fsPath}"`,
+      ...OVERRIDE_ARGS
     ];
     const args = friendlyArgs.map((x) => x.replaceAll('"', ""));
 
@@ -118,8 +119,7 @@ export async function runOrDebugFeatureWithSelectedScenarios(
       `"${featureFileWorkspaceRelativePath}$"`,
       "-n",
       `"${pipedScenarioNames}"`,
-      ...OVERRIDE_ARGS,
-      `"${wr.junitRunDirUri.fsPath}"`,
+      ...OVERRIDE_ARGS
     ];
     const args = friendlyArgs.map((x) => x.replace(/^"(.*)"$/, "$1"));
 
