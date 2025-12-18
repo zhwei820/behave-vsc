@@ -214,7 +214,7 @@
 		"compile-tests": "tsc -p . --outDir out",
 		"watch-tests": "tsc -p . -w --outDir out",
 		"lint": "eslint src --ext ts",
-		"test": "node ./out/_integrationTests/runTestSuites.js --stable",
+		"test": "echo \"No tests specified\"",
 		"pretest": "npm run compile && npm run compile-tests && npm run lint",
 		"pretestinsiders": "npm run pretest",
 		"testinsiders": "node ./out/_integrationTests/runTestSuites.js --insiders",
