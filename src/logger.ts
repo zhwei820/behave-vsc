@@ -76,7 +76,10 @@ export class Logger {
   logInfoNoLF = (text: string, wkspUri: vscode.Uri, run?: vscode.TestRun) => {
     diagLog(text);
 
-    this.channels[wkspUri.path].append(text);
+    // Immediately append text
+    const channel = this.channels[wkspUri.path];
+    channel.append(text);
+    
     if (run)
       run.appendOutput(text);
   };

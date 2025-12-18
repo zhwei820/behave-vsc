@@ -29,78 +29,24 @@ export async function runBehaveInstance(wr: WkspRun, parallelMode: boolean,
     }
 
     // Set encoding to utf8 to properly handle output
-    // Use readable event for manual flow control - this puts stream in paused mode
-    // DO NOT use resume() with readable event as they conflict
-    if (cp.stdout) {
-      cp.stdout.setEncoding('utf8');
-    }
-    if (cp.stderr) {
-      cp.stderr.setEncoding('utf8');
-    }
+    if (cp.stdout) cp.stdout.setEncoding('utf8');
+    if (cp.stderr) cp.stderr.setEncoding('utf8');
 
     // if parallel mode, use a buffer so logs gets written out in a human-readable order
     const asyncBuff: string[] = [];
-    
-    // Use readable event with manual flow control to prevent data loss
-    // This ensures we read all data at the stream's natural pace
-    // The stream will emit 'readable' when there's data available
-    if (cp.stdout) {
-      cp.stdout.on('readable', () => {
-        let chunk;
-        while (null !== (chunk = cp.stdout?.read())) {
-          const str = chunk.toString();
-          const cleaned = cleanBehaveText(str);
-          if (parallelMode) {
-            asyncBuff.push(cleaned);
-          } else {
-            config.logger.logInfoNoLF(cleaned, wkspUri);
-          }
-        }
-      });
-      
-      // Also listen for 'end' to catch any final data
-      cp.stdout.on('end', () => {
-        let chunk;
-        while (null !== (chunk = cp.stdout?.read())) {
-          const str = chunk.toString();
-          const cleaned = cleanBehaveText(str);
-          if (parallelMode) {
-            asyncBuff.push(cleaned);
-          } else {
-            config.logger.logInfoNoLF(cleaned, wkspUri);
-          }
-        }
-      });
+    const log = (str: string) => {
+      if (!str)
+        return;
+      str = cleanBehaveText(str);
+      if (parallelMode)
+        asyncBuff.push(str);
+      else
+        config.logger.logInfoNoLF(str, wkspUri);
     }
-    
-    if (cp.stderr) {
-      cp.stderr.on('readable', () => {
-        let chunk;
-        while (null !== (chunk = cp.stderr?.read())) {
-          const str = chunk.toString();
-          const cleaned = cleanBehaveText(str);
-          if (parallelMode) {
-            asyncBuff.push(cleaned);
-          } else {
-            config.logger.logInfoNoLF(cleaned, wkspUri);
-          }
-        }
-      });
-      
-      // Also listen for 'end' to catch any final data
-      cp.stderr.on('end', () => {
-        let chunk;
-        while (null !== (chunk = cp.stderr?.read())) {
-          const str = chunk.toString();
-          const cleaned = cleanBehaveText(str);
-          if (parallelMode) {
-            asyncBuff.push(cleaned);
-          } else {
-            config.logger.logInfoNoLF(cleaned, wkspUri);
-          }
-        }
-      });
-    }
+
+    // Use data event - simplest and most reliable approach
+    cp.stderr?.on('data', (chunk: string) => log(chunk));
+    cp.stdout?.on('data', (chunk: string) => log(chunk));
 
     if (!parallelMode)
       config.logger.logInfo(`\n${friendlyCmd}\n`, wkspUri);
