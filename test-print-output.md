@@ -4,15 +4,17 @@
 
 之前有很多 `print()` 输出没有显示在 `Behave VSC` 输出窗口中，主要原因是：
 
-### 1. **Python 输出缓冲问题** (主要原因)
-- 当 Python 的 stdout 不是终端（TTY）时（如通过管道连接到 Node.js），Python 默认使用**全缓冲模式**
-- 这意味着 `print()` 输出会被缓冲，直到：
-  - 缓冲区满（通常是 4KB 或 8KB）
-  - 程序结束
-  - 显式调用 `sys.stdout.flush()`
-- 对于短小的测试，输出可能根本不会显示，直到测试完全结束
+### 1. **Behave 默认捕获 stdout** (根本原因 🎯)
+- Behave 框架默认会**捕获所有 stdout 和 stderr 输出**
+- 这是 behave 的设计特性，用于在测试失败时才显示输出
+- 即使禁用 Python 缓冲，behave 也会拦截所有 print() 输出
+- 需要使用 `--no-capture` 和 `--no-capture-stderr` 参数来禁用捕获
 
-### 2. ANSI 转义序列清理不完整
+### 2. **Python 输出缓冲问题** (次要原因)
+- 当 Python 的 stdout 不是终端（TTY）时，Python 默认使用**全缓冲模式**
+- 这意味着 `print()` 输出会被缓冲，直到缓冲区满或程序结束
+
+### 3. ANSI 转义序列清理不完整
 - 之前的清理函数只移除了特定的 ANSI 代码，不够全面
 
 ## 修复方案
