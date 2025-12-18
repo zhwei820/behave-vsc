@@ -14,6 +14,7 @@ const OVERRIDE_ARGS = [
   "--show-skipped", // show-skipped is required for skipped tests to produce junit output
   "--no-capture",   // allow print() statements in steps to be displayed in output
   "--no-capture-stderr", // allow stderr output to be displayed
+  "--no-logcapture", // disable logging capture
   "--junit",
   "--junit-directory"
 ];
