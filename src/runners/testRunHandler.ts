@@ -293,8 +293,8 @@ async function runFeaturesParallel(wr: WkspRun) {
 
       const childScenarios: QueueItem[] = getChildScenariosForParentFeature(wr, wkspQueueItem);
       childScenarios.forEach(x => wr.run.started(x.test));
-      const promise = runOrDebugFeatures(wr, true, childScenarios);
-      asyncRunPromises.push(promise);
+      // 禁用整个 feature 文件的并行执行，改为顺序执行
+      await runOrDebugFeatures(wr, false, childScenarios);
       continue;
     }
 

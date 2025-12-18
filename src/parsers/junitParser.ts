@@ -98,7 +98,9 @@ export function updateTest(
       run.failed(item.test, message, result.duration);
       break;
     default:
-      throw `Unhandled test result status: ${result.status}`;
+      break;
+
+      // throw `Unhandled test result status: ${result.status}`;
   }
 
   item.scenario.result = result.status;
