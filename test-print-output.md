@@ -19,7 +19,27 @@
 
 ## 修复方案
 
-### 修改 1: 添加 PYTHONUNBUFFERED 环境变量
+### 修改 1: 禁用 Behave 的输出捕获 (关键修复 ⭐)
+**文件**: `src/runners/runOrDebug.ts`
+
+```typescript
+const OVERRIDE_ARGS = [
+  "--show-skipped",
+  "--no-capture",        // 允许 print() 输出显示
+  "--no-capture-stderr", // 允许 stderr 输出显示
+  "--junit",
+  "--junit-directory"
+];
+```
+
+这会在运行 behave 时自动添加这些参数：
+```bash
+python -m behave --no-capture --no-capture-stderr ...
+```
+
+**这是最关键的修改**，因为 behave 默认会捕获所有输出，即使解决了 Python 缓冲问题，输出仍然不会显示。
+
+### 修改 2: 添加 PYTHONUNBUFFERED 环境变量
 **文件**: `src/runners/behaveRun.ts` 和 `src/runners/behaveDebug.ts`
 
 ```typescript
