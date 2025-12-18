@@ -23,6 +23,7 @@ export async function runBehaveInstance(wr: WkspRun, parallelMode: boolean,
     // Without this, Python buffers output when stdout is not a TTY (like when piped to Node.js)
     const env = { ...process.env, ...wr.wkspSettings.envVarOverrides, PYTHONUNBUFFERED: '1' };
     const options: SpawnOptions = { cwd: wkspUri.fsPath, env: env };
+    
     cp = spawn(wr.pythonExec, local_args, options);
 
     if (!cp.pid) {
@@ -43,7 +44,15 @@ export async function runBehaveInstance(wr: WkspRun, parallelMode: boolean,
     
     const outputData: { timestamp: string, source: string, data: string }[] = [];
     
-    outputStream.write('[\n');
+    // Write command info at the start
+    outputStream.write('{\n');
+    outputStream.write('  "command_info": {\n');
+    outputStream.write(`    "timestamp": "${new Date().toISOString()}",\n`);
+    outputStream.write(`    "python_exec": ${JSON.stringify(wr.pythonExec)},\n`);
+    outputStream.write(`    "args": ${JSON.stringify(local_args, null, 4)},\n`);
+    outputStream.write(`    "options": ${JSON.stringify(options, null, 4)}\n`);
+    outputStream.write('  },\n');
+    outputStream.write('  "output": [\n');
     config.logger.logInfo(`Writing all output to: ${outputFilePath}\n`, wkspUri);
 
     // Set encoding to utf8 to properly handle output
@@ -84,13 +93,22 @@ export async function runBehaveInstance(wr: WkspRun, parallelMode: boolean,
 
     await new Promise((resolve) => {
       cp.on('close', () => {
-        // Close the output file
-        outputStream.write('\n]\n');
-        outputStream.end();
+        // Close the output array and file
+        outputStream.write('\n  ],\n');
         
         const totalEntries = outputData.length;
         const stdoutEntries = outputData.filter(e => e.source === 'stdout').length;
         const stderrEntries = outputData.filter(e => e.source === 'stderr').length;
+        
+        // Write summary
+        outputStream.write('  "summary": {\n');
+        outputStream.write(`    "total_entries": ${totalEntries},\n`);
+        outputStream.write(`    "stdout_entries": ${stdoutEntries},\n`);
+        outputStream.write(`    "stderr_entries": ${stderrEntries},\n`);
+        outputStream.write(`    "completed_at": "${new Date().toISOString()}"\n`);
+        outputStream.write('  }\n');
+        outputStream.write('}\n');
+        outputStream.end();
         
         config.logger.logInfo(`\n\nOutput file written: ${outputFilePath}`, wkspUri);
         config.logger.logInfo(`Total entries: ${totalEntries} (stdout: ${stdoutEntries}, stderr: ${stderrEntries})`, wkspUri);
