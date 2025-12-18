@@ -14,7 +14,12 @@
 - 当 Python 的 stdout 不是终端（TTY）时，Python 默认使用**全缓冲模式**
 - 这意味着 `print()` 输出会被缓冲，直到缓冲区满或程序结束
 
-### 3. ANSI 转义序列清理不完整
+### 3. Node.js 事件循环阻塞导致输出停止
+- 当输出量很大时，VS Code 的输出通道写入速度可能跟不上
+- 这会导致 Node.js 事件循环阻塞，进而导致子进程的管道填满
+- 子进程在管道满时会阻塞，造成看似"输出停止"的现象
+
+### 4. ANSI 转义序列清理不完整
 - 之前的清理函数只移除了特定的 ANSI 代码，不够全面
 
 ## 修复方案
@@ -57,7 +62,80 @@ PYTHONUNBUFFERED=1 python -m behave ...
 python -u -m behave ...  # -u 参数等同于 PYTHONUNBUFFERED=1
 ```
 
-### 修改 2: 设置流编码
+### 修改 3: 防止事件循环阻塞和管道背压 (关键修复 ⭐)
+**文件**: `src/runners/behaveRun.ts`
+
+```typescript
+// 设置流为 flowing 模式，防止管道背压
+if (cp.stdout) {
+  cp.stdout.setEncoding('utf8');
+  cp.stdout.resume();  // 确保流保持流动状态
+}
+if (cp.stderr) {
+  cp.stderr.setEncoding('utf8');
+  cp.stderr.resume();  // 确保流保持流动状态
+}
+
+// 使用异步批处理机制防止阻塞事件循环
+let outputBuffer = '';
+let isProcessing = false;
+
+const flushOutput = () => {
+  if (isProcessing || !outputBuffer) return;
+  
+  isProcessing = true;
+  const toProcess = outputBuffer;
+  outputBuffer = '';
+  
+  // 使用 setImmediate 将处理延迟到下一个事件循环
+  setImmediate(() => {
+    const cleaned = cleanBehaveText(toProcess);
+    config.logger.logInfoNoLF(cleaned, wkspUri);
+    isProcessing = false;
+    
+    // 如果处理时又积累了数据，继续刷新
+    if (outputBuffer) {
+      flushOutput();
+    }
+  });
+};
+
+const log = (str: string) => {
+  if (!str) return;
+  
+  outputBuffer += str;
+  
+  // 当缓冲区较大时立即刷新，防止内存问题
+  if (outputBuffer.length > 8192) {
+    flushOutput();
+  } else {
+    // 否则延迟刷新，批量处理多个快速输出
+    setImmediate(flushOutput);
+  }
+};
+
+cp.stdout?.on('data', (chunk: string) => log(chunk));
+cp.stderr?.on('data', (chunk: string) => log(chunk));
+
+// 进程结束时确保刷新所有剩余输出
+cp.on('close', () => {
+  if (outputBuffer) {
+    const cleaned = cleanBehaveText(outputBuffer);
+    config.logger.logInfoNoLF(cleaned, wkspUri);
+    outputBuffer = '';
+  }
+});
+```
+
+**这个修复解决了"输出到一半就停止"的问题**：
+
+1. **`resume()`**: 确保流保持在 flowing 模式，即使消费速度慢也不会完全阻塞
+2. **异步批处理**: 使用 `setImmediate()` 将输出处理移到下一个事件循环，防止同步处理大量数据时阻塞
+3. **批量合并**: 将快速连续的多个小输出合并成一个批次，减少 logger 调用次数
+4. **背压控制**: 当缓冲区达到 8KB 时立即刷新，防止内存占用过大
+5. **最终刷新**: 确保进程结束时所有剩余输出都被处理
+
+### 修改 4: 设置流编码
 **文件**: `src/runners/behaveRun.ts`
 
 ```typescript
