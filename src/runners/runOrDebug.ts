@@ -14,7 +14,7 @@ const OVERRIDE_ARGS = [
   "--no-capture-stderr", // allow stderr output to be displayed
   "--no-logcapture", // disable logging capture
   "--stop",          // stop at first failure
-  "--check_previous "          // --check_previous 
+  "--check_previous"          // --check_previous 
 ];
 
 // For testing output only - not using junit
