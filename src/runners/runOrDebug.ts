@@ -9,12 +9,13 @@ import { WkspRun } from "./testRunHandler";
 
 // hard-code any settings we MUST have (i.e. override user behave.ini file only where absolutely necessary)
 const OVERRIDE_ARGS = [
+  "--check_previous" ,         // --check_previous 
+
   "--show-skipped", // show-skipped is required for skipped tests to produce junit output
   "--no-capture",   // allow print() statements in steps to be displayed in output
   "--no-capture-stderr", // allow stderr output to be displayed
   "--no-logcapture", // disable logging capture
   "--stop",          // stop at first failure
-  "--check_previous"          // --check_previous 
 ];
 
 // For testing output only - not using junit
