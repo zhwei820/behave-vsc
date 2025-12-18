@@ -32,36 +32,24 @@ export async function runBehaveInstance(wr: WkspRun, parallelMode: boolean,
     if (cp.stdout) cp.stdout.setEncoding('utf8');
     if (cp.stderr) cp.stderr.setEncoding('utf8');
 
-    // if parallel mode, use a buffer so logs gets written out in a human-readable order
-    const asyncBuff: string[] = [];
+    // Log all output immediately without any buffering
     const log = (str: string) => {
-      if (!str)
-        return;
-      str = cleanBehaveText(str);
-      if (parallelMode)
-        asyncBuff.push(str);
-      else
-        config.logger.logInfoNoLF(str, wkspUri);
+      if (!str) return;
+      const cleaned = cleanBehaveText(str);
+      config.logger.logInfoNoLF(cleaned, wkspUri);
     }
 
     // Use data event - simplest and most reliable approach
     cp.stderr?.on('data', (chunk: string) => log(chunk));
     cp.stdout?.on('data', (chunk: string) => log(chunk));
 
-    if (!parallelMode)
-      config.logger.logInfo(`\n${friendlyCmd}\n`, wkspUri);
+    config.logger.logInfo(`\n${friendlyCmd}\n`, wkspUri);
 
     await new Promise((resolve) => {
       cp.on('close', () => {
         resolve("");
       });
     });
-
-    if (asyncBuff.length > 0) {
-      config.logger.logInfo(`\n---\n${friendlyCmd}\n`, wkspUri);
-      config.logger.logInfo(asyncBuff.join("").trim(), wkspUri);
-      config.logger.logInfo("---", wkspUri);
-    }
 
     if (wr.run.token.isCancellationRequested)
       config.logger.logInfo(`\n-- TEST RUN ${wr.run.name} CANCELLED --`, wkspUri, wr.run);
