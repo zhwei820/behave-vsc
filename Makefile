@@ -26,6 +26,7 @@ package:
 
 # Create VSIX package (skip tests)
 vsix: clean install
+
 	@echo "Building production version (skipping tests)..."
 	npm run package
 	@echo "Creating VSIX package..."

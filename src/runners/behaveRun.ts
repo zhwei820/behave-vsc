@@ -29,86 +29,84 @@ export async function runBehaveInstance(wr: WkspRun, parallelMode: boolean,
     }
 
     // Set encoding to utf8 to properly handle output
+    // Use readable event for manual flow control - this puts stream in paused mode
+    // DO NOT use resume() with readable event as they conflict
     if (cp.stdout) {
       cp.stdout.setEncoding('utf8');
-      // Ensure stream stays in flowing mode to prevent backpressure
-      cp.stdout.resume();
     }
     if (cp.stderr) {
       cp.stderr.setEncoding('utf8');
-      // Ensure stream stays in flowing mode to prevent backpressure
-      cp.stderr.resume();
     }
 
     // if parallel mode, use a buffer so logs gets written out in a human-readable order
     const asyncBuff: string[] = [];
     
-    // Use a batching mechanism to prevent blocking the event loop
-    let outputBuffer = '';
-    let isProcessing = false;
-    
-    const flushOutput = () => {
-      if (isProcessing || !outputBuffer) return;
-      
-      isProcessing = true;
-      const toProcess = outputBuffer;
-      outputBuffer = '';
-      
-      // Use setImmediate to prevent blocking the event loop
-      setImmediate(() => {
-        const cleaned = cleanBehaveText(toProcess);
-        if (parallelMode) {
-          asyncBuff.push(cleaned);
-        } else {
-          config.logger.logInfoNoLF(cleaned, wkspUri);
-        }
-        isProcessing = false;
-        
-        // If more data accumulated while processing, flush again
-        if (outputBuffer) {
-          flushOutput();
+    // Use readable event with manual flow control to prevent data loss
+    // This ensures we read all data at the stream's natural pace
+    // The stream will emit 'readable' when there's data available
+    if (cp.stdout) {
+      cp.stdout.on('readable', () => {
+        let chunk;
+        while (null !== (chunk = cp.stdout?.read())) {
+          const str = chunk.toString();
+          const cleaned = cleanBehaveText(str);
+          if (parallelMode) {
+            asyncBuff.push(cleaned);
+          } else {
+            config.logger.logInfoNoLF(cleaned, wkspUri);
+          }
         }
       });
-    };
-
-    const log = (str: string) => {
-      if (!str) return;
       
-      outputBuffer += str;
+      // Also listen for 'end' to catch any final data
+      cp.stdout.on('end', () => {
+        let chunk;
+        while (null !== (chunk = cp.stdout?.read())) {
+          const str = chunk.toString();
+          const cleaned = cleanBehaveText(str);
+          if (parallelMode) {
+            asyncBuff.push(cleaned);
+          } else {
+            config.logger.logInfoNoLF(cleaned, wkspUri);
+          }
+        }
+      });
+    }
+    
+    if (cp.stderr) {
+      cp.stderr.on('readable', () => {
+        let chunk;
+        while (null !== (chunk = cp.stderr?.read())) {
+          const str = chunk.toString();
+          const cleaned = cleanBehaveText(str);
+          if (parallelMode) {
+            asyncBuff.push(cleaned);
+          } else {
+            config.logger.logInfoNoLF(cleaned, wkspUri);
+          }
+        }
+      });
       
-      // Flush periodically or when buffer gets large to prevent memory issues
-      if (outputBuffer.length > 8192) {
-        flushOutput();
-      } else {
-        // Defer flush to batch multiple rapid outputs together
-        setImmediate(flushOutput);
-      }
-    };
-
-    // Process data immediately to prevent backpressure
-    // Note: chunk is already a string due to setEncoding('utf8')
-    cp.stderr?.on('data', (chunk: string) => {
-      log(chunk);
-    });
-    cp.stdout?.on('data', (chunk: string) => {
-      log(chunk);
-    });
+      // Also listen for 'end' to catch any final data
+      cp.stderr.on('end', () => {
+        let chunk;
+        while (null !== (chunk = cp.stderr?.read())) {
+          const str = chunk.toString();
+          const cleaned = cleanBehaveText(str);
+          if (parallelMode) {
+            asyncBuff.push(cleaned);
+          } else {
+            config.logger.logInfoNoLF(cleaned, wkspUri);
+          }
+        }
+      });
+    }
 
     if (!parallelMode)
       config.logger.logInfo(`\n${friendlyCmd}\n`, wkspUri);
 
     await new Promise((resolve) => {
       cp.on('close', () => {
-        // Ensure any remaining buffered output is flushed before resolving
-        if (outputBuffer) {
-          const cleaned = cleanBehaveText(outputBuffer);
-          if (parallelMode) {
-            asyncBuff.push(cleaned);
-          } else {
-            config.logger.logInfoNoLF(cleaned, wkspUri);
-          }
-          outputBuffer = '';
-        }
         resolve("");
       });
     });

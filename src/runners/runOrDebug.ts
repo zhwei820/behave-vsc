@@ -28,6 +28,10 @@ export async function runOrDebugAllFeaturesInOneInstance(wr: WkspRun): Promise<v
   const friendlyArgs = [...OVERRIDE_ARGS, `"${wr.junitRunDirUri.fsPath}"`];
   const args = friendlyArgs.map(x => x.replaceAll('"', ""));
 
+  // Debug: Log the exact arguments being used
+  console.log('[Behave VSC DEBUG] Running with args:', args);
+  console.log('[Behave VSC DEBUG] OVERRIDE_ARGS:', OVERRIDE_ARGS);
+
   const friendlyCmd = `${ps1}cd "${wr.wkspSettings.uri.fsPath}"\n` +
     `${friendlyEnvVars}${ps2}"${wr.pythonExec}" -m behave ${friendlyArgs.join(" ")}`;
 
