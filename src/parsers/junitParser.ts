@@ -100,17 +100,17 @@ export function updateTest(
     default:
       break;
 
-      // throw `Unhandled test result status: ${result.status}`;
+    // throw `Unhandled test result status: ${result.status}`;
   }
 
   item.scenario.result = result.status;
-  run.appendOutput(
-    `Test item ${vscode.Uri.parse(item.test.id).fsPath}: ${
-      result.status === "passed" || result.status === "skipped"
-        ? result.status.toUpperCase()
-        : "FAILED"
-    }\r\n`
-  );
+  // run.appendOutput(
+  //   `Test item ${vscode.Uri.parse(item.test.id).fsPath}: ${
+  //     result.status === "passed" || result.status === "skipped"
+  //       ? result.status.toUpperCase()
+  //       : "FAILED"
+  //   }\r\n`
+  // );
 }
 
 function CreateParseResult(
