@@ -259,14 +259,10 @@ async function runFeaturesTogether(wr: WkspRun) {
   if (runTogetherFeatures.length > 0) {
     const allChildScenarios: QueueItem[] = [];
     runTogetherFeatures.forEach(feature => allChildScenarios.push(...getChildScenariosForFeature(wr, feature)));
-    
-    // 按 scenario 逐个执行并输出结果
-    for (const scenario of allChildScenarios) {
-      if (wr.run.token.isCancellationRequested)
-        break;
-      wr.run.started(scenario.test);
-      await runOrDebugFeatureWithSelectedScenarios(wr, false, [scenario]);
-    }
+    allChildScenarios.forEach(x => wr.run.started(x.test));
+
+    // 一次性执行所有 scenarios，由 behave 的 --stop 参数控制失败后停止
+    await runOrDebugFeatures(wr, false, allChildScenarios);
   }
 }
 
@@ -297,13 +293,9 @@ async function runFeaturesParallel(wr: WkspRun) {
       featuresRun.push(runEntireFeature.id);
 
       const childScenarios: QueueItem[] = getChildScenariosForParentFeature(wr, wkspQueueItem);
-      // 按 scenario 逐个执行并输出结果
-      for (const scenario of childScenarios) {
-        if (wr.run.token.isCancellationRequested)
-          break;
-        wr.run.started(scenario.test);
-        await runOrDebugFeatureWithSelectedScenarios(wr, false, [scenario]);
-      }
+      childScenarios.forEach(x => wr.run.started(x.test));
+      // 一次性执行整个 feature，由 behave 的 --stop 参数控制失败后停止
+      await runOrDebugFeatures(wr, false, childScenarios);
       continue;
     }
 
