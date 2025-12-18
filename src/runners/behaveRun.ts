@@ -1,4 +1,4 @@
-aimport { ChildProcess, spawn, SpawnOptions } from 'child_process';
+import { ChildProcess, spawn, SpawnOptions } from 'child_process';
 import { config } from "../configuration";
 import { cleanBehaveText } from '../common';
 import { diagLog } from '../logger';
