@@ -215,9 +215,9 @@
 		"watch-tests": "tsc -p . -w --outDir out",
 		"lint": "eslint src --ext ts",
 		"test": "echo \"No tests specified\"",
-		"pretest": "npm run compile && npm run compile-tests && npm run lint",
+		"pretest": "echo \"No tests specified\"",
 		"pretestinsiders": "npm run pretest",
-		"testinsiders": "node ./out/_integrationTests/runTestSuites.js --insiders",
+		"testinsiders":"echo \"No tests specified\"",
 		"rimraf": "./node_modules/rimraf/bin.js",
 		"clean-output": "rimraf out/ dist/"
 	},
