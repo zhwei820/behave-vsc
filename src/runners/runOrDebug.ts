@@ -9,8 +9,6 @@ import { WkspRun } from "./testRunHandler";
 
 // hard-code any settings we MUST have (i.e. override user behave.ini file only where absolutely necessary)
 const OVERRIDE_ARGS = [
-  "--check_previous" ,         // --check_previous 
-
   "--show-skipped", // show-skipped is required for skipped tests to produce junit output
   "--no-capture",   // allow print() statements in steps to be displayed in output
   "--no-capture-stderr", // allow stderr output to be displayed
@@ -29,7 +27,8 @@ export async function runOrDebugAllFeaturesInOneInstance(
   const friendlyEnvVars = getFriendlyEnvVars(wr.wkspSettings);
   const { ps1, ps2 } = getPSCmdModifyIfWindows();
 
-  const friendlyArgs = [...OVERRIDE_ARGS];
+  // Only add --check_previous when running all features
+  const friendlyArgs = ["--check_previous", ...OVERRIDE_ARGS];
   const args = friendlyArgs.map((x) => x.replaceAll('"', ""));
 
   // Debug: Log the exact arguments being used
