@@ -123,6 +123,8 @@ export async function runOrDebugFeatureWithSelectedScenarios(
       `"${featureFileWorkspaceRelativePath}$"`,
       "-n",
       `"${pipedScenarioNames}"`,
+      "--check_previous",
+
       ...OVERRIDE_ARGS
     ];
     const args = friendlyArgs.map((x) => x.replace(/^"(.*)"$/, "$1"));
