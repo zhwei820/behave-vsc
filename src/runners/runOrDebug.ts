@@ -70,9 +70,11 @@ export async function runOrDebugFeatures(
     const friendlyEnvVars = getFriendlyEnvVars(wr.wkspSettings);
     const { ps1, ps2 } = getPSCmdModifyIfWindows();
 
+    // Add --check_previous when running entire features
     const friendlyArgs = [
       "-i",
       `"${pipedPathPatterns}"`,
+      "--check_previous",
       ...OVERRIDE_ARGS
     ];
     const args = friendlyArgs.map((x) => x.replaceAll('"', ""));
