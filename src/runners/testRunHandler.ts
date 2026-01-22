@@ -425,6 +425,11 @@ function parentFeatureOrAllSiblingsIncluded(wr: WkspRun, wkspQueueItem: QueueIte
   if (includedParent)
     return includedParent;
 
+  // Check if parent feature was explicitly included in the request
+  const parentExplicitlyIncluded = wr.request.include?.some(x => x.id === parent.id);
+  if (parentExplicitlyIncluded)
+    return parent;
+
   let allSiblingsIncluded = true;
   parent.children.forEach(child => {
     const includedChild = wr.sortedQueue?.find(x => x.test.id === child.id);
@@ -432,7 +437,10 @@ function parentFeatureOrAllSiblingsIncluded(wr: WkspRun, wkspQueueItem: QueueIte
       allSiblingsIncluded = false;
   });
 
-  return allSiblingsIncluded ? parent : undefined;
+  // Only return parent if all siblings are included AND there are multiple scenarios
+  // If there's only one scenario, we should run by scenario name even if it's the only one
+  const siblingCount = parent.children.size;
+  return allSiblingsIncluded && siblingCount > 1 ? parent : undefined;
 }
 
 
