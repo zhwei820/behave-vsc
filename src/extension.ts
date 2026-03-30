@@ -99,11 +99,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<TestSu
       , true);
 
 
-    ctrl.createRunProfile('Debug Tests', vscode.TestRunProfileKind.Debug,
-      async (request: vscode.TestRunRequest) => {
-        await runHandler(true, request);
-      }
-      , true);
 
 
     ctrl.resolveHandler = async (item: vscode.TestItem | undefined) => {
