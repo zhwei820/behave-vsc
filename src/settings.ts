@@ -35,6 +35,7 @@ export class WorkspaceSettings {
   // these apply to a single workspace 
 
   // user-settable
+  public readonly autoDetectVenv: boolean;
   public readonly envVarOverrides: { [name: string]: string } = {};
   public readonly justMyCode: boolean;
   public readonly runParallel: boolean;
@@ -58,6 +59,9 @@ export class WorkspaceSettings {
     this.name = wsFolder.name;
 
     // note: undefined should never happen (or packages.json is wrong) as get will return a default value for packages.json settings
+    const autoDetectVenvCfg: boolean | undefined = wkspConfig.get("autoDetectVenv");
+    if (autoDetectVenvCfg === undefined)
+      throw "autoDetectVenv is undefined";
     const envVarOverridesCfg: { [name: string]: string } | undefined = wkspConfig.get("envVarOverrides");
     if (envVarOverridesCfg === undefined)
       throw "envVarOverrides is undefined";
@@ -72,6 +76,7 @@ export class WorkspaceSettings {
       throw "runParallel is undefined";
 
 
+    this.autoDetectVenv = autoDetectVenvCfg;
     this.justMyCode = justMyCodeCfg;
     this.runParallel = runParallelCfg;
 

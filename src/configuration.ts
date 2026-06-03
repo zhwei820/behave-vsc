@@ -1,4 +1,6 @@
+import * as fs from 'fs';
 import * as os from 'os';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { getUrisOfWkspFoldersWithFeatures } from './common';
 import { diagLog, Logger } from './logger';
@@ -78,6 +80,15 @@ class ExtensionConfiguration implements Configuration {
 
   // note - python interpreter can be changed dynamically by the user, so don't store the result
   getPythonExecutable = async (wkspUri: vscode.Uri, wkspName: string) => {
+
+    if (this.workspaceSettings[wkspUri.path]?.autoDetectVenv) {
+      const venvPython = detectVenvPython(wkspUri.fsPath);
+      if (venvPython) {
+        diagLog(`auto-detected venv python: ${venvPython}`, wkspUri);
+        return venvPython;
+      }
+    }
+
     const msPyExt = "ms-python.python";
     const pyext = vscode.extensions.getExtension(msPyExt);
 
@@ -99,6 +110,34 @@ class ExtensionConfiguration implements Configuration {
 
 }
 
+
+
+function detectVenvPython(wkspFsPath: string): string | undefined {
+  const isWindows = process.platform === "win32";
+  const rel = isWindows
+    ? [path.join("Scripts", "python.exe")]
+    : [path.join("bin", "python"), path.join("bin", "python3")];
+
+  const roots: string[] = [
+    path.join(wkspFsPath, ".venv"),
+    path.join(wkspFsPath, "venv"),
+  ];
+  if (process.env.VIRTUAL_ENV)
+    roots.unshift(process.env.VIRTUAL_ENV);
+
+  for (const root of roots) {
+    for (const r of rel) {
+      const candidate = path.join(root, r);
+      try {
+        if (fs.statSync(candidate).isFile())
+          return candidate;
+      } catch {
+        // not found, continue
+      }
+    }
+  }
+  return undefined;
+}
 
 
 // global = stop the constructor getting called twice in extension integration tests

@@ -3,6 +3,12 @@
 		"configuration": {
 			"title": "behave-vsc",
 			"properties": {
+				"behave-vsc.autoDetectVenv": {
+					"scope": "resource",
+					"type": "boolean",
+					"markdownDescription": "If enabled, before falling back to the interpreter selected in the `ms-python.python` extension, look for a local virtual environment in the workspace folder (`.venv/bin/python`, `venv/bin/python`, or `$VIRTUAL_ENV/bin/python`; on Windows `.venv\\Scripts\\python.exe`, `venv\\Scripts\\python.exe`). If found, that interpreter is used to run behave.",
+					"default": true
+				},
 				"behave-vsc.envVarOverrides": {
 					"scope": "resource",
 					"type": "object",
